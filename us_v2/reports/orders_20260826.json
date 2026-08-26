@@ -1,0 +1,29 @@
+{
+  "date": "2026-08-26",
+  "regime": "STRONG_BULL",
+  "equity": 100000.0,
+  "halted": false,
+  "halt_reasons": [],
+  "risk_scale": 1.0,
+  "orders": [
+    {
+      "ticker": "MU",
+      "action": "Watch",
+      "raer": 34.5,
+      "shares": 0,
+      "entry": 932.97,
+      "stop": 834.89,
+      "notional": 0.0,
+      "notional_pct": 0.0,
+      "heat_pct": 0.0,
+      "reasons": [
+        "제약 없음"
+      ]
+    }
+  ],
+  "portfolio_after": {
+    "total_exposure_pct": 0.0,
+    "portfolio_heat_pct": 0.0,
+    "sector_exposure_pct": {}
+  }
+}
