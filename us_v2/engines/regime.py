@@ -100,6 +100,14 @@ def _pillar_b_breadth(spy: pd.Series, rsp: pd.Series, constituents: list[str],
     return (b1 + b2 + b3 + b4).rename("pillar_B")
 
 
+def _c3_realized_vol_score(vol: pd.Series) -> pd.Series:
+    """§3-1: <18% -> +7 / 18~28% -> +3 / >28%(배타) -> 0. 0점 경계가 초과(>)라
+    +3 구간 상단(28%)은 포함해야 한다(<=)."""
+    return pd.Series(
+        np.select([vol < 0.18, vol <= 0.28], [7, 3], default=0.0), index=vol.index,
+    )
+
+
 def _pillar_c_volatility(spy: pd.Series, vix: pd.Series, vix9d: pd.Series, vix3m: pd.Series):
     vix_pct = vix.rolling(252, min_periods=252).apply(lambda w: (w <= w[-1]).mean(), raw=True)
     vix93_ratio = vix9d / vix3m
@@ -111,9 +119,7 @@ def _pillar_c_volatility(spy: pd.Series, vix: pd.Series, vix9d: pd.Series, vix3m
     c2 = pd.Series(np.select(
         [vix93_ratio < 0.95, vix93_ratio < 1.00], [8, 4], default=0.0
     ), index=vix.index)
-    c3 = pd.Series(np.select(
-        [realized_vol20 < 0.18, realized_vol20 < 0.28], [7, 3], default=0.0
-    ), index=spy.index)
+    c3 = _c3_realized_vol_score(realized_vol20)
 
     pillar_c = (c1 + c2 + c3).rename("pillar_C")
     return pillar_c, vix_pct, vix93_ratio

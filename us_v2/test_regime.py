@@ -9,6 +9,13 @@ sys.path.insert(0, str(Path(__file__).parent))
 from engines import regime  # noqa: E402
 
 
+def test_c3_realized_vol_tier_is_inclusive_at_28pct():
+    # §3-1 원문: ">28% -> 0" (배타) 이므로 정확히 28%는 +3 구간에 포함돼야 함
+    vol = pd.Series([0.10, 0.18, 0.20, 0.28, 0.30])
+    score = regime._c3_realized_vol_score(vol)
+    assert list(score) == [7, 3, 3, 3, 0]
+
+
 def test_classify_raw_bands():
     # 총점 밴드
     assert regime.classify_raw(85, 20, 0.5, 0.9) == "STRONG_BULL"
