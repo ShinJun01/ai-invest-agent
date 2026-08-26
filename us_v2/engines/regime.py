@@ -174,7 +174,9 @@ def _apply_confirmation_and_overrides(df: pd.DataFrame) -> pd.Series:
             pending_raw, pending_streak = raw, 1
         prev_raw = raw
 
-        # CRISIS는 총점>=45가 3거래일 연속이어야 탈출 (2일 확인 규칙보다 우선)
+        # CRISIS 탈출만 특별 규칙(총점>=45가 3거래일 연속). CRISIS 진입 자체는 §3-2 정의표의
+        # 여섯 밴드 중 하나일 뿐이라 다른 전환과 똑같이 2일 확인 규칙을 따른다 — "총점 무관
+        # 강제 적용" 오버라이드 목록(§3-2)에 있는 건 탈출 규칙(4번)이지 진입 면제가 아니다.
         if prev_confirmed == "CRISIS":
             crisis_recovery_streak = crisis_recovery_streak + 1 if row["total"] >= 45 else 0
             if crisis_recovery_streak >= 3:
@@ -182,11 +184,9 @@ def _apply_confirmation_and_overrides(df: pd.DataFrame) -> pd.Series:
                 crisis_recovery_streak = 0
             else:
                 new_confirmed = "CRISIS"
-        elif raw == "CRISIS":
-            new_confirmed = "CRISIS"  # CRISIS 진입은 즉시(오버라이드 조건이라 확인 규칙 면제)
-            crisis_recovery_streak = 0
         elif pending_streak >= 2:
             new_confirmed = pending_raw
+            crisis_recovery_streak = 0
         else:
             new_confirmed = prev_confirmed if prev_confirmed != "UNKNOWN" else raw
 

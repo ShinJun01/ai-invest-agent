@@ -62,6 +62,26 @@ def test_crisis_requires_three_day_recovery():
     assert list(confirmed) == ["CRISIS", "CRISIS", "CRISIS", "NEUTRAL", "NEUTRAL"]
 
 
+def test_crisis_entry_needs_two_day_confirmation_like_any_other_transition():
+    # BULL 도중 CRISIS가 하루만 튀면 확정되면 안 됨(§3-0 2일 확인 규칙은 CRISIS도 예외 아님)
+    df = pd.DataFrame({
+        "raw_regime":    ["BULL", "BULL", "CRISIS", "BULL", "BULL"],
+        "total":         [70, 70, 10, 70, 70],
+        "spy_5d_return": [0.0] * 5,
+    })
+    confirmed = regime._apply_confirmation_and_overrides(df)
+    assert list(confirmed) == ["BULL", "BULL", "BULL", "BULL", "BULL"]
+
+    # 이틀 연속이면 확정됨
+    df2 = pd.DataFrame({
+        "raw_regime":    ["BULL", "BULL", "CRISIS", "CRISIS", "CRISIS"],
+        "total":         [70, 70, 10, 10, 10],
+        "spy_5d_return": [0.0] * 5,
+    })
+    confirmed2 = regime._apply_confirmation_and_overrides(df2)
+    assert list(confirmed2) == ["BULL", "BULL", "BULL", "CRISIS", "CRISIS"]
+
+
 def test_spy_drawdown_override_caps_at_caution():
     df = pd.DataFrame({
         "raw_regime": ["STRONG_BULL", "STRONG_BULL"],
