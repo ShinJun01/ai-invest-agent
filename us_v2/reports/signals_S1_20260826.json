@@ -1,0 +1,29 @@
+{
+  "date": "2026-08-26",
+  "regime": "STRONG_BULL",
+  "strategy": "S1_TrendPullback",
+  "applicable": true,
+  "candidates_evaluated": 10,
+  "signals": [
+    {
+      "ticker": "MU",
+      "strategy": "S1_TrendPullback",
+      "entry_status": "confirmed_reversal",
+      "entry": 932.97,
+      "stop": 834.89,
+      "r_multiple_target_1": 1031.05,
+      "risk_per_share": 98.08,
+      "chandelier_atr_multiple": 2.5,
+      "max_hold_days": 20,
+      "conditions": {
+        "c1_above_200_50ema": true,
+        "c2_rs_top20pct": true,
+        "c3_pullback_to_20ema": true,
+        "c4_volume_contraction": true,
+        "c5_pullback_low_above_50ema": true
+      },
+      "score": 100.0,
+      "sector": "Information Technology"
+    }
+  ]
+}
