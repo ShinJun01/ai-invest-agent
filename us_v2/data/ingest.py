@@ -40,21 +40,28 @@ CBOE_TICKERS = {
     "VIX3M": "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX3M_History.csv",
 }
 
+# 값은 Wikipedia S&P500 표의 GICS Sector 컬럼과 정확히 일치하는 공식 명칭
+# (screen.py의 F5 섹터강도 팩터가 이 문자열로 종목<->섹터ETF를 매칭한다)
 SECTOR_ETFS = {
-    "XLK": "Info Tech", "XLF": "Financials", "XLE": "Energy", "XLV": "Health Care",
-    "XLI": "Industrials", "XLY": "Cons Discretionary", "XLP": "Cons Staples",
-    "XLU": "Utilities", "XLB": "Materials", "XLRE": "Real Estate", "XLC": "Comm Services",
+    "XLK": "Information Technology", "XLF": "Financials", "XLE": "Energy",
+    "XLV": "Health Care", "XLI": "Industrials", "XLY": "Consumer Discretionary",
+    "XLP": "Consumer Staples", "XLU": "Utilities", "XLB": "Materials",
+    "XLRE": "Real Estate", "XLC": "Communication Services",
 }
 
 WIKI_SP500_URL = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
 
 
-def fetch_sp500_constituents() -> list[str]:
-    """현재 시점 S&P500 구성종목 (Wikipedia). yfinance 표기(BRK.B -> BRK-B)로 정규화."""
+def fetch_sp500_constituents() -> tuple[list[str], dict[str, str]]:
+    """현재 시점 S&P500 구성종목 + GICS 섹터 (Wikipedia). yfinance 표기(BRK.B -> BRK-B)로 정규화.
+    반환: (정렬된 티커 리스트, {티커: GICS Sector})"""
     resp = requests.get(WIKI_SP500_URL, headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
     resp.raise_for_status()
     table = pd.read_html(io.StringIO(resp.text))[0]
-    return sorted(table["Symbol"].str.replace(".", "-", regex=False).tolist())
+    table["Symbol"] = table["Symbol"].str.replace(".", "-", regex=False)
+    tickers = sorted(table["Symbol"].tolist())
+    sectors = dict(zip(table["Symbol"], table["GICS Sector"]))
+    return tickers, sectors
 
 
 def download_cboe(url: str) -> pd.DataFrame:
@@ -121,10 +128,13 @@ def run(start: str = "2013-06-01") -> dict:
     save_all(cboe_data, source="cboe", manifest=manifest)
 
     print("[2/3] S&P500 constituents list...")
-    constituents = fetch_sp500_constituents()
+    constituents, sectors = fetch_sp500_constituents()
+    as_of = datetime.now(timezone.utc).date().isoformat()
     (STORE_DIR / "sp500_constituents.json").write_text(
-        json.dumps({"as_of": datetime.now(timezone.utc).date().isoformat(),
-                     "tickers": constituents}, ensure_ascii=False, indent=2)
+        json.dumps({"as_of": as_of, "tickers": constituents}, ensure_ascii=False, indent=2)
+    )
+    (STORE_DIR / "sp500_sectors.json").write_text(
+        json.dumps({"as_of": as_of, "sectors": sectors}, ensure_ascii=False, indent=2)
     )
 
     print(f"[3/3] {len(constituents)} constituents' daily bars (breadth 계산용)...")
