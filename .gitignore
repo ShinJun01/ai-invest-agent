@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+us_v2/data/store/*.parquet
+us_v2/backtest/runs/
+.env
+*.env
