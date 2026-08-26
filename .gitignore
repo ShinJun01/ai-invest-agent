@@ -5,6 +5,7 @@ venv/
 us_v2/data/store/*.parquet
 us_v2/data/store/manifest.json
 us_v2/data/store/sp500_constituents.json
+us_v2/data/store/sp500_sectors.json
 us_v2/backtest/runs/
 .env
 *.env
