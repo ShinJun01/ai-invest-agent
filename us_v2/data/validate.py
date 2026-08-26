@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import io
 import json
+import sys
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -16,11 +17,12 @@ from pathlib import Path
 import pandas as pd
 import requests
 
-STORE_DIR = Path(__file__).parent / "store"
-MANIFEST_PATH = STORE_DIR / "manifest.json"
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from data.store import MANIFEST_PATH, STORE_DIR, load as _load  # noqa: E402
+
 REPORTS_DIR = Path(__file__).parent.parent / "reports"
 
-CORE_TICKERS = {"SPY", "QQQ", "GSPC", "VIX", "VIX9D", "VIX3M", "TNX", "DXY"}
+CORE_TICKERS = {"SPY", "QQQ", "GSPC", "VIX", "VIX9D", "VIX3M", "TNX", "DXY", "RSP", "HYG", "IEF", "IWM"}
 VIX_RANGE = (5.0, 150.0)
 MAX_DAILY_RETURN = 0.30
 MIN_COVERAGE = 0.98
@@ -33,11 +35,6 @@ class GateResult:
     passed: bool
     message: str
     blocking: bool = True  # False = 참고용 플래그, HALT 판정에 포함하지 않음
-
-
-def _load(ticker: str) -> pd.DataFrame:
-    path = STORE_DIR / f"{ticker.replace('^', '').replace('.', '-')}.parquet"
-    return pd.read_parquet(path)
 
 
 def v1_schema(ticker: str, df: pd.DataFrame) -> GateResult:

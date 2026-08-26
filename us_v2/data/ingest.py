@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import io
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -16,8 +17,8 @@ import pandas as pd
 import requests
 import yfinance as yf
 
-STORE_DIR = Path(__file__).parent / "store"
-MANIFEST_PATH = STORE_DIR / "manifest.json"
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # us_v2/ -> `data` 패키지로 임포트
+from data.store import MANIFEST_PATH, STORE_DIR, safe_name  # noqa: E402
 
 CORE_TICKERS = {
     "SPY": "SPY",
@@ -26,6 +27,10 @@ CORE_TICKERS = {
     "VIX": "^VIX",
     "TNX": "^TNX",
     "DXY": "DX-Y.NYB",
+    "RSP": "RSP",      # 동일가중 S&P500 — Breadth Pillar B (소수 대형주 착시 감지)
+    "HYG": "HYG",       # 하이일드 회사채 — Risk Appetite Pillar D
+    "IEF": "IEF",       # 7-10Y 국채 — HYG/IEF 신용 스프레드 대용
+    "IWM": "IWM",       # 러셀2000 — 소형주 상대강도, Risk Appetite Pillar D
 }
 
 # VIX9D/VIX3M은 yfinance가 수 주씩 지연되는 경우가 잦아(V2 신선도 게이트가 실측으로 확인),
@@ -52,10 +57,6 @@ def fetch_sp500_constituents() -> list[str]:
     return sorted(table["Symbol"].str.replace(".", "-", regex=False).tolist())
 
 
-def _safe_name(ticker: str) -> str:
-    return ticker.replace("^", "").replace(".", "-")
-
-
 def download_cboe(url: str) -> pd.DataFrame:
     resp = requests.get(url, timeout=30)
     resp.raise_for_status()
@@ -67,10 +68,10 @@ def download_cboe(url: str) -> pd.DataFrame:
     return df[["open", "high", "low", "close", "volume"]]
 
 
-def download_batch(tickers: list[str], period: str) -> dict[str, pd.DataFrame]:
+def download_batch(tickers: list[str], start: str) -> dict[str, pd.DataFrame]:
     """yfinance 배치 다운로드. 실패/빈 종목은 결과 dict에서 제외(V6 커버리지가 감지)."""
     raw = yf.download(
-        tickers, period=period, group_by="ticker", threads=True,
+        tickers, start=start, group_by="ticker", threads=True,
         auto_adjust=True, progress=False,
     )
     out: dict[str, pd.DataFrame] = {}
@@ -92,7 +93,7 @@ def save_all(data: dict[str, pd.DataFrame], source: str, manifest: dict) -> None
     STORE_DIR.mkdir(parents=True, exist_ok=True)
     fetched_at = datetime.now(timezone.utc).isoformat()
     for ticker, df in data.items():
-        path = STORE_DIR / f"{_safe_name(ticker)}.parquet"
+        path = STORE_DIR / f"{safe_name(ticker)}.parquet"
         df.to_parquet(path)
         manifest[ticker] = {
             "source": source,
@@ -103,12 +104,14 @@ def save_all(data: dict[str, pd.DataFrame], source: str, manifest: dict) -> None
         }
 
 
-def run(period: str = "3y") -> dict:
+def run(start: str = "2013-06-01") -> dict:
+    """start 기본값: 2015-01-01부터 레짐 히스토리 라벨링(부록A 작업2/3)을 하려면
+    252일 롤링(VIX 백분위 등) 워밍업 기간이 필요해 1.5년 여유를 둔다."""
     manifest: dict = {}
 
     print("[1/3] core + sector ETFs...")
     core_and_sector = {**CORE_TICKERS, **{k: k for k in SECTOR_ETFS}}
-    raw = download_batch(list(core_and_sector.values()), period)
+    raw = download_batch(list(core_and_sector.values()), start)
     # download_batch는 yfinance 심볼(예: ^VIX)로 반환 -> 내부에서 쓰는 이름(VIX)으로 리매핑
     core_data = {friendly: raw[yf_sym] for friendly, yf_sym in core_and_sector.items() if yf_sym in raw}
     save_all(core_data, source="yfinance", manifest=manifest)
@@ -130,7 +133,7 @@ def run(period: str = "3y") -> dict:
     for i in range(0, len(constituents), chunk):
         batch = constituents[i:i + chunk]
         print(f"  {i}-{i+len(batch)} / {len(constituents)}")
-        data = download_batch(batch, period)
+        data = download_batch(batch, start)
         save_all(data, source="yfinance", manifest=manifest)
 
     MANIFEST_PATH.write_text(json.dumps(manifest, ensure_ascii=False, indent=2))
@@ -141,6 +144,6 @@ def run(period: str = "3y") -> dict:
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--period", default="3y")
+    parser.add_argument("--start", default="2013-06-01")
     args = parser.parse_args()
-    run(period=args.period)
+    run(start=args.start)
