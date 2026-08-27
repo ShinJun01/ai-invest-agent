@@ -27,7 +27,8 @@ Claude 기반 AI 투자·매매 시스템. 두 개의 독립된 하위 시스템
 | `engines/screen.py` | 종목 스크리닝(§5, Stage 0~5) | 완료 (유니버스는 S&P500만, NASDAQ100/MidCap400 미확장) |
 | `engines/signals.py` | S1 Trend Pullback 진입/손절 확정(§9-1) | 완료 |
 | `engines/sizing.py` | RAER + 리스크 상한 기반 포지션 사이징(§8/§10) | 완료 |
-| `engines/*` (백테스트, S2~S5 전략) | — | 미착수 |
+| `backtest/engine.py`, `backtest/report.py` | S1 히스토리 백테스트(§11) + Tier1/2 성과 | **MVP** — 생존편향 있음(시점별 유니버스 아님), screen.py Stage5 선별/sizing.py 리스크캡 미적용 → 개별 트레이드 기대값은 거의 0인데 포트폴리오 MDD -88%. `reports/backtest_S1_report.md` 참고 |
+| `backtest/validators.py` (과최적화 방어 10종, §11-4), S2~S5 전략 | — | 미착수 |
 
 매일 실행 순서: `data/ingest.py` → `data/validate.py` → `engines/regime.py` →
 `engines/screen.py` → `engines/signals.py` → `engines/sizing.py --equity <계좌액>`.
